@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="theme-color" content="#f18b35">
+<title>Terrainium — Mini 3D Terrarium</title>
+<style>
+:root{--ink:#26362c;--glass:rgba(255,255,255,.72);--line:rgba(255,255,255,.78)}
+*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;font-family:Inter,ui-rounded,system-ui,-apple-system,Segoe UI,sans-serif;color:var(--ink)}
+body{background:radial-gradient(ellipse at 50% 18%,#ffe6a0 0%,#ffba65 31%,#f38a4c 66%,#d95c45 100%)}
+#scene{position:fixed;inset:0;width:100%;height:100%;display:block;outline:none}
+.glow{position:fixed;pointer-events:none;inset:0;background:radial-gradient(ellipse at 50% 47%,transparent 28%,rgba(100,42,20,.12) 100%);z-index:1}
+.top{position:fixed;z-index:2;top:0;left:0;right:0;display:flex;align-items:center;justify-content:space-between;padding:clamp(16px,3vw,30px);gap:12px;pointer-events:none}
+.brand{display:flex;align-items:center;gap:12px}.mark{width:43px;height:43px;border-radius:15px;background:rgba(255,255,255,.82);display:grid;place-items:center;box-shadow:0 6px 20px #9e4c3030;font-size:24px}.brand h1{font-size:clamp(20px,3vw,28px);margin:0;letter-spacing:-1px}.brand p{margin:3px 0 0;font-size:12px;letter-spacing:1.6px;text-transform:uppercase;color:#684a32}
+.pill{pointer-events:auto;border:1px solid #ffffffa8;background:#ffffffa8;backdrop-filter:blur(16px);border-radius:99px;padding:10px 15px;font-size:12px;font-weight:750;letter-spacing:.5px;box-shadow:0 8px 24px #82452b15}
+.bottom{position:fixed;z-index:2;bottom:0;left:0;right:0;display:flex;align-items:flex-end;justify-content:space-between;gap:16px;padding:22px clamp(16px,3vw,30px) max(20px,env(safe-area-inset-bottom));pointer-events:none}
+.intro{max-width:370px;padding:17px 20px;background:var(--glass);border:1px solid var(--line);border-radius:22px;backdrop-filter:blur(18px);box-shadow:0 12px 36px #803d2717}.eyebrow{font-size:10px;font-weight:850;letter-spacing:2px;text-transform:uppercase;color:#9a6134}.intro h2{margin:7px 0;font-size:clamp(22px,3vw,30px);letter-spacing:-1.1px}.intro p{margin:0;font-size:13px;line-height:1.55;color:#58665a}
+.controls{pointer-events:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;justify-content:flex-end;max-width:440px}.control{border:1px solid #ffffffb5;background:rgba(255,255,255,.8);color:#27382c;padding:11px 14px;border-radius:14px;font:700 12px inherit;font-size:12px;font-weight:750;box-shadow:0 7px 20px #773e2815;cursor:pointer;transition:transform .18s,background .18s;backdrop-filter:blur(14px)}.control:hover{transform:translateY(-2px);background:white}.control:active{transform:scale(.97)}.control.active{background:#294a38;color:white;border-color:#294a38}
+.hint{position:fixed;z-index:2;top:95px;left:50%;transform:translateX(-50%);padding:9px 14px;background:#fff9;border:1px solid #fff9;border-radius:99px;backdrop-filter:blur(10px);font-size:11px;font-weight:700;color:#5d5746;white-space:nowrap;pointer-events:none}
+#loading{position:fixed;inset:0;display:grid;place-items:center;z-index:5;background:linear-gradient(145deg,#ffe7a4,#f08a4b);transition:opacity .6s}.loadbox{text-align:center}.loader{width:50px;height:50px;border:3px solid #ffffff70;border-top-color:#31513a;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 15px}@keyframes spin{to{transform:rotate(360deg)}}.loadbox b{letter-spacing:1px}.loadbox p{font-size:12px;opacity:.7}
+#toast{position:fixed;z-index:4;top:145px;left:50%;transform:translate(-50%,-8px);opacity:0;background:#243d2d;color:white;border-radius:12px;padding:11px 16px;font-size:12px;font-weight:700;transition:.25s;pointer-events:none}#toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:620px){.top{padding:15px}.mark{width:37px;height:37px;border-radius:13px}.brand{gap:9px}.brand p{font-size:9px;letter-spacing:1px}.pill{font-size:10px;padding:9px 11px}.hint{top:78px;font-size:10px}.bottom{align-items:stretch;flex-direction:column;padding:12px 14px max(15px,env(safe-area-inset-bottom));gap:10px}.intro{max-width:none;padding:12px 15px}.intro h2{font-size:21px;margin:3px 0}.intro p{font-size:11px}.eyebrow{font-size:9px}.controls{justify-content:center;max-width:none;gap:7px}.control{padding:11px 12px;flex:1;min-width:76px}.hint{max-width:92%;overflow:hidden;text-overflow:ellipsis}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+</style>
+</head>
+<body>
+<canvas id="scene" aria-label="Interactive 3D glass terrarium with miniature plants and a mossy island"></canvas><div class="glow"></div>
+<div id="loading"><div class="loadbox"><div class="loader"></div><b>GROWING YOUR LITTLE WORLD</b><p>Preparing moss, glass and sunshine…</p></div></div>
+<header class="top"><div class="brand"><div class="mark">♧</div><div><h1>Terrainium</h1><p>A tiny world of your own</p></div></div><div class="pill" id="weather">DAYLIGHT · 24°C</div></header>
+<div class="hint">Drag to rotate · Scroll to zoom</div>
+<section class="bottom"><div class="intro"><div class="eyebrow">YOUR MINIATURE ECOSYSTEM</div><h2 id="worldTitle">The Mossy Hollow</h2><p id="worldText">A quiet little forest, sealed in glass. Take a closer look and make this tiny world yours.</p></div><div class="controls"><button class="control" id="plants">＋ Add plant</button><button class="control" id="butterflies">Fireflies: On</button><button class="control" id="night">Night mode</button><button class="control" id="reset">Reset view</button></div></section><div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+<script>
+(()=>{
+const canvas=document.querySelector('#scene'),loading=document.querySelector('#loading'),toastEl=document.querySelector('#toast');
+let scene,camera,renderer,world,glass,fireflies=[],plantGroups=[],night=false,bugsOn=true,drag=false,prevX=0,prevY=0,rotY=-.35,rotX=0,zoom=1,toastTimer,clock;
+const toast=s=>{toastEl.textContent=s;toastEl.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>toastEl.classList.remove('show'),1800)};
+function mat(color,roughness=.8,extra={}){return new THREE.MeshStandardMaterial({color,roughness,...extra})}
+const soilMat=mat('#79523a'),soilDark=mat('#4e392c'),mossMat=mat('#547d45'),mossLight=mat('#80a85a'),leafMats=['#2e6843','#438650','#6e9b52','#9ebc69','#285b43'].map(c=>mat(c)),stemMat=mat('#547c45'),stoneMats=['#9c9b87','#777e72','#b8ad91'].map(c=>mat(c)),woodMat=mat('#6c4933'),glassMat=new THREE.MeshPhysicalMaterial({color:0xffffff,metalness:0,roughness:.08,transparent:true,opacity:.15,side:THREE.DoubleSide,depthWrite:false,clearcoat:1,clearcoatRoughness:.05});
+function mesh(geo,material,parent,x=0,y=0,z=0){const m=new THREE.Mesh(geo,material);m.position.set(x,y,z);parent.add(m);return m}
+function group(parent,x=0,y=0,z=0){const g=new THREE.Group();g.position.set(x,y,z);parent.add(g);return g}
+function sphere(parent,material,x,y,z,sx,sy,sz){const m=mesh(new THREE.SphereGeometry(1,18,12),material,parent,x,y,z);m.scale.set(sx,sy,sz);return m}
+function cylinder(parent,material,r1,r2,h,x,y,z,segments=16){return mesh(new THREE.CylinderGeometry(r1,r2,h,segments),material,parent,x,y,z)}
+function makeLeaf(parent,x,y,z,scale,angle,material){const leaf=sphere(parent,material,x,y,z,scale*.53,scale*.2,scale*.3);leaf.rotation.set(.25,angle,-.38);return leaf}
+function makeFern(parent,x,y,z,scale,variant=0){
+ const g=group(parent,x,y,z),stem=cylinder(g,stemMat,.012*scale,.018*scale,scale*.7,0,scale*.35,0,8);stem.rotation.z=-.15;
+ for(let i=0;i<7;i++){const t=i/7,yy=scale*(.08+t*.75),reach=scale*(.25*(1-t)+.035);makeLeaf(g,-reach,yy,0,scale*(.16+.05*Math.sin(i)), -.5,leafMats[(i+variant)%leafMats.length]);makeLeaf(g,reach,yy+.025*scale,0,scale*(.17+.04*Math.cos(i)), .5,leafMats[(i+variant+1)%leafMats.length])}
+ makeLeaf(g,0,scale*.76,0,scale*.23,0,leafMats[variant%leafMats.length]);g.rotation.y=variant*1.7;plantGroups.push(g);return g
+}
+function makePlant(parent,x,z,scale,variant=0){
+ const g=group(parent,x,0,z);
+ if(variant%4===0){makeFern(g,0,0,0,scale,variant);return g}
+ const n=variant%4===1?8:variant%4===2?6:5;
+ for(let i=0;i<n;i++){const a=i*2.399,rad=scale*(.09+.12*(i%3)),h=scale*(.28+.22*((i*7)%5)/4);const tipX=Math.cos(a)*rad*2,tipZ=Math.sin(a)*rad*2;
+ const stalk=cylinder(g,stemMat,.008*scale,.012*scale,h*.72,tipX*.35,h*.36,tipZ*.35,7);stalk.rotation.z=-tipX*.7;stalk.rotation.x=tipZ*.7;
+ const leaf=sphere(g,leafMats[(i+variant)%leafMats.length],tipX,h*.7,tipZ,scale*.17,scale*.32,scale*.13);leaf.rotation.z=-tipX*1.4;leaf.rotation.x=tipZ*1.4;
+ }
+ if(variant%4===2){const flowerMat=mat(['#f2d58a','#f6b5a1','#e8e6bd'][variant%3]);for(let i=0;i<3;i++){const a=i*2.1;sphere(g,flowerMat,Math.cos(a)*scale*.12,scale*(.48+i*.03),Math.sin(a)*scale*.12,scale*.09,scale*.07,scale*.08)}}
+ plantGroups.push(g);return g
+}
+function buildWorld(){
+ world=group(scene);const soil=mesh(new THREE.CylinderGeometry(1.48,1.32,.25,64),soilMat,world,0,-.05,0);soil.scale.z=.86;
+ mesh(new THREE.CylinderGeometry(1.36,1.3,.08,64),soilDark,world,0,-.19,0).scale.z=.86;
+ const turf=mesh(new THREE.CylinderGeometry(1.44,1.44,.08,64),mossMat,world,0,.085,0);turf.scale.z=.86;
+ for(let i=0;i<110;i++){const a=Math.random()*Math.PI*2,r=Math.sqrt(Math.random())*1.36,x=Math.cos(a)*r,z=Math.sin(a)*r*.84; sphere(world,Math.random()<.6?mossLight:leafMats[1],x,.126+Math.random()*.018,z,.025+Math.random()*.04,.012,.02)}
+ // Layered hills and miniature woodland
+ const hill=sphere(world,mossMat,-.34,.25,-.36,.65,.28,.45);const hill2=sphere(world,mossLight,.48,.18,.17,.52,.17,.38);
+ makePlant(world,-.63,.12,.7,0);makePlant(world,-.82,-.3,.63,1);makePlant(world,-.24,-.62,.5,2);makePlant(world,.62,-.42,.72,0);makePlant(world,.86,.05,.52,1);makePlant(world,.25,.56,.55,2);makePlant(world,-.08,.1,.47,3);makePlant(world,.34,-.12,.42,1);
+ // Stones along the path
+ for(let i=0;i<9;i++){const a=-.8+i*.19,r=.76+Math.sin(i*1.8)*.05,x=Math.cos(a)*r,z=Math.sin(a)*r*.76;const st=mesh(new THREE.DodecahedronGeometry(.09+Math.random()*.05,0),stoneMats[i%3],world,x,.17,z);st.scale.set(1,.55,.78);st.rotation.set(Math.random(),Math.random(),Math.random())}
+ // Tiny winding stream
+ const waterMat=new THREE.MeshPhysicalMaterial({color:'#83c7c1',roughness:.18,metalness:.05,transparent:true,opacity:.82,clearcoat:1});
+ const stream=mesh(new THREE.TorusGeometry(.36,.055,10,50,Math.PI*.92),waterMat,world,.18,.155,.08);stream.rotation.x=Math.PI/2;stream.rotation.z=2.3;stream.scale.set(1,.68,1);
+ // Fallen log
+ const log=cylinder(world,woodMat,.065,.08,.52,-.42,.19,.34,12);log.rotation.set(.12,0,-.4);
+ // Tiny mushrooms
+ const cap=mat('#d76b4d'),cream=mat('#f5e4bf');for(let i=0;i<4;i++){let x=-.5+i*.1,z=.25+Math.sin(i)*.12; cylinder(world,cream,.018,.024,.09,x,.19,z,8);sphere(world,cap,x,.245,z,.055,.035,.052)}
+ // Glass terrarium: clear round bowl with open neck and glass base
+ const glassGroup=group(world,0,.05,0);
+ const bowlGeo=new THREE.SphereGeometry(1.85,64,48,0,Math.PI*2,0,Math.PI*.84);
+ glass=mesh(bowlGeo,glassMat,glassGroup,0,.83,0);glass.scale.set(.91,1,.79);
+ const rimMat=new THREE.MeshStandardMaterial({color:'#fff5d8',metalness:.22,roughness:.22,transparent:true,opacity:.72});
+ const rim=mesh(new THREE.TorusGeometry(.51,.035,12,64),rimMat,glassGroup,0,2.25,0);rim.scale.set(1,.82,1);
+ const base=mesh(new THREE.CylinderGeometry(1.52,1.48,.14,64),mat('#c18c5a',.35,{metalness:.18}),world,0,-.24,0);base.scale.z=.86;
+ const foot=mesh(new THREE.CylinderGeometry(1.37,1.42,.09,64),mat('#75513b',.45),world,0,-.34,0);foot.scale.z=.86;
+ // Fine highlights on glass
+ const glintMat=new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.75});
+ const glint=mesh(new THREE.TorusGeometry(.12,.012,8,30,Math.PI*1.2),glintMat,glassGroup,.63,1.72,.49);glint.rotation.set(.5,.6,1.2);
+ const glint2=mesh(new THREE.TorusGeometry(.075,.008,8,30,Math.PI),glintMat,glassGroup,-.7,1.15,.42);glint2.rotation.set(.4,-.6,.8);
+ // Fireflies, positioned in the terrarium
+ const bugMat=new THREE.MeshBasicMaterial({color:'#ffed9b'}),bugGlow=new THREE.PointLight('#ffda75',.55,1.1);
+ for(let i=0;i<18;i++){const g=group(world,(Math.random()-.5)*2.2,.35+Math.random()*1.25,(Math.random()-.5)*1.5);const b=sphere(g,bugMat,0,0,0,.018,.018,.018);const light=new THREE.PointLight('#ffd875',.18,.45);g.add(light);fireflies.push({g,baseY:g.position.y,phase:Math.random()*6.28,speed:.4+Math.random()*.8});}
+}
+function init(){
+ if(!window.THREE){loading.querySelector('b').textContent='3D ENGINE DID NOT LOAD';loading.querySelector('p').textContent='Check your internet connection and refresh the page.';document.querySelector('.hint').textContent='Terrainium needs an internet connection to load its 3D engine';return}
+ scene=new THREE.Scene();scene.fog=new THREE.Fog('#f6b36c',7,15);
+ camera=new THREE.PerspectiveCamera(37,innerWidth/innerHeight,.1,100);camera.position.set(0,3.0,7.7);
+ renderer=new THREE.WebGLRenderer({canvas,antialias:true,alpha:true,powerPreference:'high-performance'});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(innerWidth,innerHeight);renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;
+ scene.add(new THREE.HemisphereLight('#fff4d5','#5b4a32',2.0));const sun=new THREE.DirectionalLight('#fff0ce',3.1);sun.position.set(-4,7,5);scene.add(sun);const fill=new THREE.DirectionalLight('#9bc9ff',1.2);fill.position.set(4,3,-4);scene.add(fill);
+ const floor=mesh(new THREE.CircleGeometry(200,64),mat('#e98c4d',1),scene,0,-.49,0);floor.rotation.x=-Math.PI/2;
+ const shadow=mesh(new THREE.CircleGeometry(2.25,64),new THREE.MeshBasicMaterial({color:'#934c35',transparent:true,opacity:.12}),scene,0,-.475,0);shadow.rotation.x=-Math.PI/2;shadow.scale.set(1,.65,1);
+ buildWorld();clock=new THREE.Clock();
+ addEventListener('resize',resize);canvas.addEventListener('pointerdown',pointerDown);addEventListener('pointermove',pointerMove);addEventListener('pointerup',()=>{drag=false;canvas.style.cursor='grab'});canvas.addEventListener('wheel',wheel,{passive:false});canvas.addEventListener('dblclick',()=>{rotY+=Math.PI/2});canvas.style.cursor='grab';
+ setTimeout(()=>{loading.style.opacity='0';setTimeout(()=>loading.remove(),650)},650);animate()
+}
+function resize(){if(!renderer)return;camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio,2))}
+function pointerDown(e){if(e.target!==canvas)return;drag=true;prevX=e.clientX;prevY=e.clientY;canvas.setPointerCapture?.(e.pointerId);canvas.style.cursor='grabbing'}
+function pointerMove(e){if(!drag)return;rotY+=(e.clientX-prevX)*.008;rotX+=(e.clientY-prevY)*.005;rotX=Math.max(-.32,Math.min(.38,rotX));prevX=e.clientX;prevY=e.clientY}
+function wheel(e){e.preventDefault();zoom=Math.max(.72,Math.min(1.35,zoom+e.deltaY*.0007))}
+function animate(){requestAnimationFrame(animate);const t=clock.getElapsedTime();if(world){world.rotation.y+=(rotY-world.rotation.y)*.045;world.rotation.x+=(rotX-world.rotation.x)*.045;const targetZ=7.7/zoom;camera.position.z+=(targetZ-camera.position.z)*.08;camera.position.y+=(3.0+rotX*1.4-camera.position.y)*.04;world.position.y=Math.sin(t*.65)*.025;plantGroups.forEach((p,i)=>{p.rotation.z=Math.sin(t*.75+i)*.018});fireflies.forEach(f=>{f.g.position.y=f.baseY+Math.sin(t*f.speed+f.phase)*.12;f.g.position.x+=Math.sin(t*.4+f.phase)*.0007;f.g.visible=bugsOn;if(f.g.children[1])f.g.children[1].intensity=bugsOn?(night?.65:.18):0});if(renderer)renderer.render(scene,camera)}}
+document.querySelector('#plants').addEventListener('click',()=>{if(plantGroups.length>=38){toast('Your little forest is full!');return}const a=Math.random()*Math.PI*2,r=.25+Math.random()*.83;makePlant(world,Math.cos(a)*r,Math.sin(a)*r*.76,.38+Math.random()*.3,Math.floor(Math.random()*4));toast('A new plant has taken root')});
+document.querySelector('#butterflies').addEventListener('click',e=>{bugsOn=!bugsOn;e.currentTarget.textContent=bugsOn?'Fireflies: On':'Fireflies: Off';e.currentTarget.classList.toggle('active',!bugsOn);toast(bugsOn?'Fireflies are glowing again':'The fireflies have settled down')});
+document.querySelector('#night').addEventListener('click',e=>{night=!night;e.currentTarget.textContent=night?'Day mode':'Night mode';e.currentTarget.classList.toggle('active',night);document.querySelector('#weather').textContent=night?'MOONLIGHT · 16°C':'DAYLIGHT · 24°C';document.body.style.background=night?'radial-gradient(ellipse at 50% 20%,#384d68,#1e3046 55%,#172434 100%)':'radial-gradient(ellipse at 50% 18%,#ffe6a0 0%,#ffba65 31%,#f38a4c 66%,#d95c45 100%)';if(scene){scene.fog.color.set(night?'#28394d':'#f6b36c');scene.children.filter(o=>o.isHemisphereLight).forEach(o=>{o.intensity=night?.65:2});scene.children.filter(o=>o.isDirectionalLight).forEach(o=>{o.intensity=night?.55:3.1});renderer.toneMappingExposure=night?.7:1.15;glassMat.opacity=night?.22:.15}toast(night?'The miniature forest sleeps beneath the stars':'Sunlight returns to the terrarium')});
+document.querySelector('#reset').addEventListener('click',()=>{rotY=-.35;rotX=0;zoom=1;toast('View reset')});
+init();
+})();
+</script>
+</body>
+</html>
